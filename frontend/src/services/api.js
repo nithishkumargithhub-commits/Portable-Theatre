@@ -1,3 +1,16 @@
+
+function parseApiError(errorData, fallbackMsg) {
+  if (!errorData) return fallbackMsg;
+  if (typeof errorData.detail === 'string') return errorData.detail;
+  if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+    const item = errorData.detail[0];
+    if (typeof item === 'string') return item;
+    if (item && item.msg) return item.msg;
+  }
+  if (errorData.message) return errorData.message;
+  return fallbackMsg;
+}
+
 const API_BASE = "/api";
 
 export async function loginGuest(username) {
@@ -50,8 +63,8 @@ export async function loginApi(username_or_email, password) {
     body: JSON.stringify({ username_or_email, password })
   });
   if (!res.ok) {
-    const errorData = await res.json().catch(() => ({ detail: "Invalid credentials" }));
-    throw new Error(errorData.detail || "Invalid credentials");
+    const errorData = await res.json().catch(() => null);
+    throw new Error(parseApiError(errorData, "Invalid credentials"));
   }
   return await res.json();
 }
