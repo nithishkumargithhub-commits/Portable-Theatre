@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Environment & Local DBs
+.env
+.env.local
+*.db
+*.sqlite3
+
+# Production builds
+frontend/dist/
+frontend/build/
+frontend/playwright-report/
+frontend/test-results/
+
+# System / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
