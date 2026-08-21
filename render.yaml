@@ -5,20 +5,11 @@ services:
     region: oregon
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    plan: free
     envVars:
       - key: ENVIRONMENT
         value: production
       - key: SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: portable-theatre-db
-          property: connectionString
       - key: ALLOWED_ORIGINS
         value: "https://portable-theatre.vercel.app,https://*.vercel.app"
-
-databases:
-  - name: portable-theatre-db
-    databaseName: portable_theatre
-    user: portable_user
-    plan: free
