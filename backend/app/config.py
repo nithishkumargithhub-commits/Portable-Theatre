@@ -6,11 +6,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'portable-theatre-super-secret-key-2026')
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
 
-ENABLE_DEMO_ADMIN_ENV = os.getenv('ENABLE_DEMO_ADMIN')
-if ENABLE_DEMO_ADMIN_ENV is not None:
-    ENABLE_DEMO_ADMIN = ENABLE_DEMO_ADMIN_ENV.lower() == 'true'
-else:
-    ENABLE_DEMO_ADMIN = ENVIRONMENT != 'production'
+# Disable demo admin bypass in production and by default
+ENABLE_DEMO_ADMIN = False
 
 ALLOWED_ORIGINS_RAW = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
 ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_RAW.split(',') if origin.strip()]

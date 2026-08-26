@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Lock, Mail, User, ShieldCheck, Sparkles, AlertCircle, Eye, EyeOff, Film } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { X, Film, Mail, Lock, User, Sparkles, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
-export function AuthModal({ isOpen, onClose }) {
-  const { loginUser, registerUser, loginDemoAdmin } = useAuth();
-  const [mode, setMode] = useState('login');
+export function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
+  const { loginUser, registerUser } = useAuth();
+  const [mode, setMode] = useState(initialMode);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,19 +36,6 @@ export function AuthModal({ isOpen, onClose }) {
       onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoAdmin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await loginDemoAdmin();
-      onClose();
-    } catch {
-      setError('Failed to initialize demo admin session.');
     } finally {
       setLoading(false);
     }
@@ -189,21 +176,10 @@ export function AuthModal({ isOpen, onClose }) {
               )}
             </button>
           </form>
-
-          {/* Demo admin */}
-          <div className="mt-5 pt-4 border-t border-slate-800/60 text-center">
-            <p className="text-[11px] text-slate-600 mb-3">Want to try admin controls?</p>
-            <button
-              type="button"
-              onClick={handleDemoAdmin}
-              disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4" /> Quick Demo Admin Access
-            </button>
-          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default AuthModal;
