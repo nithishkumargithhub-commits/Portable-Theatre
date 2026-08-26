@@ -36,13 +36,19 @@ def resolve_database_url():
     if not raw_url:
         return 'sqlite+aiosqlite:///./portable_theatre.db'
 
-    # Convert standard postgres / postgresql schemas to asyncpg driver format
-    if raw_url.startswith('postgres://'):
-        return raw_url.replace('postgres://', 'postgresql+asyncpg://', 1)
-    elif raw_url.startswith('postgresql://') and '+asyncpg' not in raw_url:
-        return raw_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    url = raw_url
 
-    return raw_url
+    # Convert standard postgres / postgresql schemas to asyncpg driver format
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
+    elif url.startswith('postgresql://') and '+asyncpg' not in url:
+        url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+
+    # Convert psycopg2 sslmode parameter to asyncpg ssl parameter
+    if 'sslmode=' in url:
+        url = url.replace('sslmode=', 'ssl=')
+
+    return url
 
 DATABASE_URL = resolve_database_url()
 
