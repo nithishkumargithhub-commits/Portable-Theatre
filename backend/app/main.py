@@ -39,6 +39,12 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
+    logger.error("GLOBAL EXCEPTION CAUGHT: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Registration/Auth Error: {str(exc)}"}
+    )
+async def global_exception_handler(request, exc):
     logging.error(f"Unhandled Exception: {exc}")
     return JSONResponse(
         status_code=500,
