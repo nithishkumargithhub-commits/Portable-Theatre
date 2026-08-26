@@ -67,7 +67,9 @@ async def register(user_in: UserRegister, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username or email already registered")
 
     now = datetime.utcnow()
+    user_id = str(uuid.uuid4())
     new_user = User(
+        id=user_id,
         username=user_in.username,
         email=user_in.email,
         role="user",
@@ -97,6 +99,7 @@ async def demo_admin(db: AsyncSession = Depends(get_db)):
     now = datetime.utcnow()
     if not user:
         user = User(
+            id=str(uuid.uuid4()),
             username="admin",
             email="admin@portabletheatre.io",
             role="admin",
@@ -142,6 +145,7 @@ async def guest_login(guest_in: GuestLogin, db: AsyncSession = Depends(get_db)):
     guest_email = f"{guest_username}@guest.local"
     now = datetime.utcnow()
     new_user = User(
+        id=str(uuid.uuid4()),
         username=guest_username,
         email=guest_email,
         password_hash=get_password_hash(str(uuid.uuid4())),
