@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import uuid
+import bcrypt
 
 from app.database import get_db
 from app.models import User
@@ -17,10 +18,21 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        try:
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception:
+            return False
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    try:
+        pwd_bytes = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+    except Exception:
+        return pwd_context.hash(password)
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
@@ -61,30 +73,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 
 @router.post("/register", response_model=TokenResponse)
 async def register(user_in: UserRegister, db: AsyncSession = Depends(get_db)):
-    # Check existing user
-    result = await db.execute(select(User).where((User.username == user_in.username) | (User.email == user_in.email)))
-    if result.scalars().first():
-        raise HTTPException(status_code=400, detail="Username or email already registered")
+    try:
+        # Check existing user
+        result = await db.execute(select(User).where((User.username == user_in.username) | (User.email == user_in.email)))
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="Username or email already registered")
 
-    now = datetime.utcnow()
-    user_id = str(uuid.uuid4())
-    new_user = User(
-        id=user_id,
-        username=user_in.username,
-        email=user_in.email,
-        role="user",
-        password_hash=get_password_hash(user_in.password),
-        avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={user_in.username}",
-        is_active=True,
-        created_at=now,
-        last_active_at=now
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+        now = datetime.utcnow()
+        user_id = str(uuid.uuid4())
+        new_user = User(
+            id=user_id,
+            username=user_in.username,
+            email=user_in.email,
+            role="user",
+            password_hash=get_password_hash(user_in.password),
+            avatar_url=f"https://api.dicebear.com/7.x/bottts/svg?seed={user_in.username}",
+            is_active=True,
+            created_at=now,
+            last_active_at=now
+        )
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
 
-    access_token = create_access_token({"sub": new_user.id})
-    return TokenResponse(access_token=access_token, user=UserResponse.model_validate(new_user))
+        access_token = create_access_token({"sub": new_user.id})
+        return TokenResponse(access_token=access_token, user=UserResponse.model_validate(new_user))
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("REGISTRATION EXCEPTION:", e)
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @router.post("/demo-admin", response_model=TokenResponse)
 async def demo_admin(db: AsyncSession = Depends(get_db)):
@@ -122,22 +140,28 @@ async def demo_admin(db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(User).where((User.username == user_in.username_or_email) | (User.email == user_in.username_or_email))
-    )
-    user = result.scalars().first()
-    if not user or not verify_password(user_in.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    try:
+        result = await db.execute(
+            select(User).where((User.username == user_in.username_or_email) | (User.email == user_in.username_or_email))
+        )
+        user = result.scalars().first()
+        if not user or not verify_password(user_in.password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is deactivated. Please contact an administrator.")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Account is deactivated. Please contact an administrator.")
 
-    user.last_active_at = datetime.utcnow()
-    await db.commit()
-    await db.refresh(user)
+        user.last_active_at = datetime.utcnow()
+        await db.commit()
+        await db.refresh(user)
 
-    access_token = create_access_token({"sub": user.id})
-    return TokenResponse(access_token=access_token, user=UserResponse.model_validate(user))
+        access_token = create_access_token({"sub": user.id})
+        return TokenResponse(access_token=access_token, user=UserResponse.model_validate(user))
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("LOGIN EXCEPTION:", e)
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 @router.post("/guest", response_model=TokenResponse)
 async def guest_login(guest_in: GuestLogin, db: AsyncSession = Depends(get_db)):
