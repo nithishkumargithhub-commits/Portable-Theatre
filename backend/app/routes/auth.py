@@ -188,3 +188,13 @@ async def guest_login(guest_in: GuestLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.delete("/reset-user/{username}")
+async def reset_user(username: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalars().first()
+    if user:
+        await db.delete(user)
+        await db.commit()
+        return {"status": f"User {username} deleted successfully"}
+    return {"status": "User not found"}
