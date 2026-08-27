@@ -1,8 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Globe, Lock, Film, Sparkles, X, Upload, Link } from 'lucide-react';
+import { Plus, Globe, Lock, Film, Sparkles, X, Upload, Link, Check, Clapperboard } from 'lucide-react';
 import { createPartyApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useParty } from '../context/PartyContext';
+
+const STREAM_PRESETS = [
+  {
+    title: '🍿 Saturday Movie Night',
+    videoTitle: 'Big Buck Bunny 4K (HLS)',
+    url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    tag: '4K HLS',
+  },
+  {
+    title: '🐉 Sintel: Dragon Premiere',
+    videoTitle: 'Sintel 4K (Akamai HLS)',
+    url: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
+    tag: '4K DOLBY',
+  },
+  {
+    title: '🤖 Tears of Steel Sci-Fi Watch',
+    videoTitle: 'Tears of Steel (VFX HLS)',
+    url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+    tag: 'VFX ACTION',
+  },
+];
 
 export function CreatePartyModal({ isOpen, onClose }) {
   const { token, user, loginAsGuest } = useAuth();
@@ -24,6 +45,13 @@ export function CreatePartyModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleApplyPreset = (preset) => {
+    setTitle(preset.title);
+    setVideoTitle(preset.videoTitle);
+    setVideoUrl(preset.url);
+    setSourceType('url');
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -65,35 +93,64 @@ export function CreatePartyModal({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4">
       <div
-        className={`glass-premium rounded-3xl max-w-lg w-full border border-slate-700/50 shadow-cinema relative overflow-hidden max-h-[90vh] overflow-y-auto transition-all duration-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+        className={`glass-premium rounded-3xl max-w-lg w-full border border-indigo-500/20 shadow-cinema relative overflow-hidden max-h-[90vh] overflow-y-auto transition-all duration-300 ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       >
-        {/* Ambient */}
-        <div className="absolute -top-20 -right-20 w-56 h-56 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Ambient Glows */}
+        <div className="absolute -top-24 -right-24 w-60 h-60 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-pink-600/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 p-7">
-          <button onClick={onClose} className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-surface-light text-slate-500 hover:text-white transition-all">
+          <button 
+            onClick={onClose} 
+            className="absolute top-5 right-5 p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+            aria-label="Close modal"
+          >
             <X className="w-4 h-4" />
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              <Film className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3.5 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-600/30 border border-white/20">
+              <Clapperboard className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Host a Party Room</h3>
-              <p className="text-xs text-slate-500">Invite friends & stream in perfect sync</p>
+              <h3 className="text-lg font-black font-display text-white">Host a Virtual Cinema</h3>
+              <p className="text-xs text-slate-400">Stream in frame-perfect synchronization with friends</p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Quick Cinema Presets */}
+          <div className="mb-5 space-y-2">
+            <label className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Instant Movie Presets
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {STREAM_PRESETS.map((p) => (
+                <button
+                  key={p.tag}
+                  type="button"
+                  onClick={() => handleApplyPreset(p)}
+                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                    videoUrl === p.url
+                      ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-sm'
+                      : 'bg-cinema-850 hover:bg-cinema-800 border-slate-800 text-slate-300'
+                  }`}
+                >
+                  <span className="text-[9px] font-black uppercase tracking-wider block text-indigo-400 mb-0.5">{p.tag}</span>
+                  <p className="text-[11px] font-bold truncate leading-tight">{p.videoTitle.split(' ')[0]}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
 
             {/* Title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Party Title</label>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Party Title</label>
               <input
                 type="text" required
-                placeholder="e.g. 🍿 Saturday Night Movie Stream"
+                placeholder="e.g. 🍿 Saturday Night Sci-Fi Stream"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="input-field"
@@ -102,10 +159,10 @@ export function CreatePartyModal({ isOpen, onClose }) {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Description <span className="text-slate-600">(Optional)</span></label>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Description <span className="text-slate-500 font-normal">(Optional)</span></label>
               <textarea
                 rows={2}
-                placeholder="Tell viewers what you're watching…"
+                placeholder="Tell cinephiles what you're watching…"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="input-field resize-none"
@@ -114,16 +171,20 @@ export function CreatePartyModal({ isOpen, onClose }) {
 
             {/* Source type */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Stream Source</label>
-              <div className="flex gap-2 p-1 bg-surface rounded-xl border border-slate-800">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Media Source</label>
+              <div className="flex gap-2 p-1 bg-cinema-850 rounded-xl border border-slate-800">
                 {[
-                  { v: 'url', label: '🌐 URL Stream', icon: Link },
-                  { v: 'local', label: '📁 Local File', icon: Upload },
+                  { v: 'url', label: '🌐 Online Stream (HLS / MP4)', icon: Link },
+                  { v: 'local', label: '📁 Local Video File', icon: Upload },
                 ].map(({ v, label }) => (
                   <button
                     key={v} type="button"
                     onClick={() => setSourceType(v)}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${sourceType === v ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                      sourceType === v 
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md' 
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
                   >
                     {label}
                   </button>
@@ -133,10 +194,10 @@ export function CreatePartyModal({ isOpen, onClose }) {
 
             {/* Video title */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Movie / Stream Title</label>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Stream / Movie Name</label>
               <input
                 type="text" required
-                placeholder="e.g. Big Buck Bunny 4K"
+                placeholder="e.g. Cyberpunk 2099 (4K HLS)"
                 value={videoTitle}
                 onChange={(e) => setVideoTitle(e.target.value)}
                 className="input-field"
@@ -146,7 +207,7 @@ export function CreatePartyModal({ isOpen, onClose }) {
             {/* URL or file */}
             {sourceType === 'url' ? (
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Stream URL (HLS / MP4)</label>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Stream URL (.m3u8 or .mp4)</label>
                 <input
                   type="url" required
                   placeholder="https://example.com/stream.m3u8"
@@ -156,39 +217,39 @@ export function CreatePartyModal({ isOpen, onClose }) {
                 />
               </div>
             ) : (
-              <div className="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-6 text-center bg-surface/40 transition-all cursor-pointer group">
+              <div className="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-6 text-center bg-cinema-850/60 transition-all cursor-pointer group">
                 <input
                   type="file" accept="video/*"
                   onChange={handleFileChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-500/20 transition-colors">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-500/25 transition-colors">
                   <Upload className="w-5 h-5 text-indigo-400" />
                 </div>
-                <p className="text-sm font-semibold text-slate-200">
+                <p className="text-sm font-bold text-slate-200">
                   {selectedFile ? `📁 ${selectedFile.name}` : 'Click or drag a video file'}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   {selectedFile ? `${(selectedFile.size / (1024*1024)).toFixed(1)} MB` : 'MP4, MKV, WebM, MOV supported'}
                 </p>
               </div>
             )}
 
             {/* Public toggle */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-surface border border-slate-800">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-cinema-850 border border-slate-800">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isPublic ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-                  {isPublic ? <Globe className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-amber-400" />}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isPublic ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}`}>
+                  {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-200">{isPublic ? 'Public Room' : 'Private Room'}</p>
-                  <p className="text-xs text-slate-500">{isPublic ? 'Visible in lobby' : 'Invite code only'}</p>
+                  <p className="text-sm font-bold text-white">{isPublic ? 'Public Premiere Hall' : 'Private Invite Lounge'}</p>
+                  <p className="text-xs text-slate-400">{isPublic ? 'Visible to all in cinema lobby' : 'Accessible via invite code only'}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${isPublic ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                className={`relative w-12 h-6 rounded-full transition-colors ${isPublic ? 'bg-indigo-600' : 'bg-slate-700'}`}
                 aria-label="Toggle public/private"
               >
                 <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${isPublic ? 'left-7' : 'left-1'}`} />
@@ -210,7 +271,7 @@ export function CreatePartyModal({ isOpen, onClose }) {
                     Creating…
                   </span>
                 ) : (
-                  <><Sparkles className="w-4 h-4" /> Start Party Room</>
+                  <><Sparkles className="w-4 h-4" /> Launch Cinema Room</>
                 )}
               </button>
             </div>
