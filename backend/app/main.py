@@ -4,14 +4,17 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.database import init_db
+from app.database import init_db, AsyncSessionLocal
+from app.models import User, Party, PartyParticipant
+from sqlalchemy.future import select
+from jose import JWTError, jwt
 from app.routes.auth import router as auth_router
 from app.routes.parties import router as party_router
 from app.routes.cameras import router as camera_router
 from app.routes.analytics import router as analytics_router
 from app.routes.admin import router as admin_router
 from app.websocket import manager
-from app.config import ALLOWED_ORIGINS, ENVIRONMENT
+from app.config import ALLOWED_ORIGINS, ENVIRONMENT, SECRET_KEY, ALGORITHM
 from fastapi.responses import JSONResponse
 import logging
 
@@ -39,13 +42,7 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error("GLOBAL EXCEPTION CAUGHT: %s", exc, exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Registration/Auth Error: {str(exc)}"}
-    )
-async def global_exception_handler(request, exc):
-    logging.error(f"Unhandled Exception: {exc}")
+    logging.exception("Unhandled exception", exc_info=exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "An internal server error occurred. Please try again later."}
@@ -79,9 +76,44 @@ async def root():
 async def websocket_party_endpoint(
     websocket: WebSocket,
     party_id: str,
-    user_id: str = Query(...),
-    username: str = Query(...)
+    token: str = Query(...)
 ):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        authenticated_user_id = payload.get("sub")
+        if not authenticated_user_id:
+            raise JWTError("Missing subject")
+
+        async with AsyncSessionLocal() as db:
+            user_result = await db.execute(
+                select(User).where(User.id == authenticated_user_id, User.is_active == True)
+            )
+            user = user_result.scalars().first()
+            party_result = await db.execute(
+                select(Party).where(Party.id == party_id, Party.status == "active")
+            )
+            party = party_result.scalars().first()
+            if not user or not party:
+                await websocket.close(code=1008)
+                return
+
+            if not party.is_public:
+                membership_result = await db.execute(
+                    select(PartyParticipant).where(
+                        PartyParticipant.party_id == party_id,
+                        PartyParticipant.user_id == user.id
+                    )
+                )
+                if not membership_result.scalars().first():
+                    await websocket.close(code=1008)
+                    return
+
+            user_id = user.id
+            username = user.username
+    except (JWTError, ValueError):
+        await websocket.close(code=1008)
+        return
+
     await manager.connect(websocket, party_id, user_id, username)
     try:
         while True:

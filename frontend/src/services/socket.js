@@ -27,6 +27,7 @@ export class PartySocketManager {
     this.currentPartyId = null;
     this.currentUserId = null;
     this.currentUsername = null;
+    this.currentToken = null;
     this.listeners = new Set();
     this.isFallback = false;
     this.mockState = {
@@ -45,13 +46,14 @@ export class PartySocketManager {
     ];
   }
 
-  connect(partyId, userId, username) {
+  connect(partyId, userId, username, token) {
     this.currentPartyId = partyId;
     this.currentUserId = userId;
     this.currentUsername = username;
+    this.currentToken = token;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = window.location.host;
-    const wsUrl = `${wsProtocol}//${wsHost}/ws/party/${partyId}?user_id=${encodeURIComponent(userId)}&username=${encodeURIComponent(username)}`;
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/party/${partyId}?token=${encodeURIComponent(token)}`;
 
     try {
       this.ws = new WebSocket(wsUrl);
@@ -86,7 +88,7 @@ export class PartySocketManager {
           const delay = Math.min(1000 * Math.pow(2, attempts), 16000);
           setTimeout(() => {
             if (this.currentPartyId && this.currentUserId && this.currentUsername) {
-              this.connect(this.currentPartyId, this.currentUserId, this.currentUsername);
+              this.connect(this.currentPartyId, this.currentUserId, this.currentUsername, this.currentToken);
             }
           }, delay);
         }

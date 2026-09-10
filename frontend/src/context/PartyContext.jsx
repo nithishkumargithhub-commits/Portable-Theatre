@@ -32,16 +32,17 @@ export function PartyProvider({ children }) {
     joinedTimeRef.current = Date.now();
     const activeUser = user || JSON.parse(localStorage.getItem('pt_user') || 'null');
     if (activeUser) {
-      socketManager.connect(partyObj.id, activeUser.id, activeUser.username);
+      const activeToken = token || localStorage.getItem('pt_token');
+      if (activeToken) socketManager.connect(partyObj.id, activeUser.id, activeUser.username, activeToken);
     }
-  }, [user]);
+  }, [user, token]);
 
   useEffect(() => {
     if (currentParty && user) {
       if (!joinedTimeRef.current) joinedTimeRef.current = Date.now();
-      socketManager.connect(currentParty.id, user.id, user.username);
+      if (token) socketManager.connect(currentParty.id, user.id, user.username, token);
     }
-  }, [currentParty, user]);
+  }, [currentParty, user, token]);
 
   const leaveParty = useCallback(() => {
     if (currentParty && joinedTimeRef.current) {
