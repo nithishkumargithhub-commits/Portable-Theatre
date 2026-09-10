@@ -2,7 +2,9 @@ import os
 import logging
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development').lower()
-SECRET_KEY = os.getenv('SECRET_KEY', 'portable-theatre-super-secret-key-2026')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError('SECRET_KEY environment variable must be configured before starting Portable Theatre.')
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
 
@@ -49,5 +51,3 @@ def resolve_database_url():
 
 DATABASE_URL = resolve_database_url()
 
-if ENVIRONMENT == 'production' and SECRET_KEY == 'portable-theatre-super-secret-key-2026':
-    logging.warning('⚠️ SECURITY WARNING: Production environment is using default SECRET_KEY!')
